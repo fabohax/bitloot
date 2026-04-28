@@ -103,6 +103,8 @@ def main():
     attempts = 0
     start_time = time.time()
     batch = []
+    spinner = ['|', '/', '-', '\\']
+    spin_idx = 0
     try:
         while True:
             mnemonic = str(generate_mnemonic(args.words))
@@ -112,6 +114,9 @@ def main():
                 funded, tx_count = check_balance(address)
             batch.append((mnemonic, address, funded, tx_count))
             attempts += 1
+            # Show spinner in terminal
+            console.print(f"[bold blue]Working {spinner[spin_idx % len(spinner)]}[/bold blue]", end='\r', highlight=False, soft_wrap=True)
+            spin_idx += 1
             if len(batch) >= args.batch:
                 for m, a, f, t in batch:
                     print_colored_seed(m, a, f, t)
