@@ -101,4 +101,4 @@ Attempts: 100 | Speed: 1.23/s | Elapsed: 81.2s | Last: bc1qxyz...
 ---
 
 ## 👨‍💻 Author
-- Created by [Your Name] — inspired by the wild odds of Bitcoin!
+- Created by @fabohax — inspired by the wild odds of Bitcoin!
