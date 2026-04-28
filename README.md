@@ -1,3 +1,9 @@
+
+
+<p align="center">
+   <img src="bitloot.gif" alt="Bitloot Demo" style="max-width:100%;width:100%;height:auto;"/>
+</p>
+
 # 🎲 Bitcoin Seed Phrase Lottery Bot
 
 > **⚠️ Disclaimer:** This project is for educational and entertainment purposes only. Never use it with real funds. The probability of finding a funded address is astronomically low — this is a fun experiment, not a real way to get Bitcoin!
